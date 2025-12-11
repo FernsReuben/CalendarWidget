@@ -83,6 +83,13 @@ function render() {
             render();
         });
 
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "loadEvents") {
+                window.CALENDAR_EVENTS = event.data.data;
+                renderCalendar(currentMonth, currentYear);
+            }
+        });
+
         grid.appendChild(div);
         dayNum++;
     }
