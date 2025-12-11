@@ -4,16 +4,6 @@ function keyOf(date) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-// Example events
-const events = {
-    "2025-03-03": [{ title: "Design Review", start: "09:30", end: "10:30", color: "#FF6B6B" }],
-    "2025-03-06": [
-        { title: "Team Sync", start: "11:00", end: "11:30", color: "#007aff" },
-        { title: "Call w/ Alex", start: "15:00", end: "15:45", color: "#7b61ff" }
-    ],
-    "2025-03-14": [{ title: "Mom's Birthday", start: "All Day", end: "", color: "#ffb86b" }]
-};
-
 // State
 const today = new Date();
 let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -26,6 +16,28 @@ const modal = document.getElementById("modal");
 const modalTitle = document.getElementById("modalTitle");
 const modalSubtitle = document.getElementById("modalSubtitle");
 const modalList = document.getElementById("modalList");
+
+// CMS Events container
+let events = {}; // will be filled from Wix via postMessage
+
+// Listen for messages from Wix
+window.addEventListener("message", (event) => {
+    if (event.data.type === "loadEvents") {
+        // Convert received events into keyed object for fast lookup
+        events = {};
+        event.data.data.forEach(ev => {
+            if (!events[ev.date]) events[ev.date] = [];
+            events[ev.date].push({
+                title: ev.title,
+                start: ev.startTime || "All Day",
+                end: ev.endTime || "",
+                color: ev.color || "#007aff",
+                description: ev.description || ""
+            });
+        });
+        render(); // re-render calendar after loading events
+    }
+});
 
 // Render Calendar
 function render() {
@@ -51,9 +63,7 @@ function render() {
         div.dataset.date = cellKey;
 
         if (d.getMonth() !== month) div.classList.add("inactive");
-
         if (cellKey === keyOf(today)) div.classList.add("today");
-
         if (cellKey === selected) div.classList.add("selected");
 
         // Number
@@ -77,17 +87,11 @@ function render() {
             div.appendChild(dots);
         }
 
+        // Click
         div.addEventListener("click", () => {
             selected = cellKey;
             openModal(d, events[cellKey] || []);
             render();
-        });
-
-        window.addEventListener("message", (event) => {
-            if (event.data.type === "loadEvents") {
-                window.CALENDAR_EVENTS = event.data.data;
-                renderCalendar(currentMonth, currentYear);
-            }
         });
 
         grid.appendChild(div);
@@ -117,12 +121,12 @@ function openModal(date, eventList) {
             item.className = "event-item";
 
             item.innerHTML = `
-        <div class="event-color" style="background:${ev.color}"></div>
-        <div>
-          <div><strong>${ev.title}</strong></div>
-          <div style="color:gray; font-size:13px;">${ev.start} ${ev.end ? "— " + ev.end : ""}</div>
-        </div>
-      `;
+                <div class="event-color" style="background:${ev.color}"></div>
+                <div>
+                  <div><strong>${ev.title}</strong></div>
+                  <div style="color:gray; font-size:13px;">${ev.start} ${ev.end ? "— " + ev.end : ""}</div>
+                </div>
+            `;
 
             modalList.appendChild(item);
         });
