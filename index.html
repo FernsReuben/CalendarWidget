@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iPhone Style Calendar</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="CalendarStyle.css" />
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="calendar-card" role="application" aria-label="Calendar">
+            <div class="cal-header">
+                <div class="month-controls">
+                    <button class="control-btn icon" id="prevBtn" aria-label="Previous month">&larr;</button>
+                    <div>
+                        <div class="month-title" id="monthTitle">Month</div>
+                        <div style="font-size:12px;color:var(--muted)">Month view</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="swatch" style="background:var(--accent)"></div>Events
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px;">
+                        <button class="control-btn" id="todayBtn">Today</button>
+                        <button class="control-btn icon" id="nextBtn" aria-label="Next month">&rarr;</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="weekdays">
+                <div>Sun</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+            </div>
+
+            <div id="calendarGrid" class="month-grid">
+                <!-- days injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal-backdrop" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modalTitle"></div>
+                    <div class="modal-subtitle" id="modalSubtitle"></div>
+                </div>
+                <div>
+                    <button class="control-btn" id="addEventBtn">＋</button>
+                    <button class="close-btn" id="closeModal">✕</button>
+                </div>
+            </div>
+
+            <div id="modalList" class="modal-list"></div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="CalendarScript.js"></script>
+</body>
+
+</html>
