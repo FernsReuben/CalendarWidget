@@ -23,13 +23,24 @@ let events = {}; // will be filled from Wix via postMessage
 // Listen for messages from Wix
 window.addEventListener("message", (event) => {
     if (event.data.type === "loadEvents") {
-        // Convert CMS events to keyed object
         events = {};
         event.data.data.forEach(ev => {
-            if (!events[ev.date]) events[ev.date] = [];
-            events[ev.date].push({
-                title: ev.title,
-                start: ev.start || "All Day",
+            if (!ev.date) return; // skip invalid dates
+
+            // Convert date to YYYY-MM-DD string to match calendar keys
+            let dateStr;
+            if (ev.date instanceof Date) {
+                dateStr = keyOf(ev.date);
+            } else {
+                // parse string from Wix CMS (ISO)
+                const dt = new Date(ev.date);
+                dateStr = keyOf(dt);
+            }
+
+            if (!events[dateStr]) events[dateStr] = [];
+            events[dateStr].push({
+                title: ev.title || ev.eventName,
+                start: ev.start || ev.eventTime || "All Day",
                 end: ev.end || "",
                 color: ev.color || "#007aff",
                 description: ev.description || ""
@@ -45,7 +56,6 @@ function render() {
     const month = viewDate.getMonth();
 
     titleEl.textContent = `${viewDate.toLocaleString("default", { month: "long" })} ${year}`;
-
     grid.innerHTML = "";
 
     const firstDay = new Date(year, month, 1).getDay();
