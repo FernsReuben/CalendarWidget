@@ -1,5 +1,5 @@
 :root {
-    --bg: #f2f5f8;
+    --bg: #1B4965;
     --card: #ffffff;
     --muted: #9aa4af;
     --accent: #007aff;
@@ -188,4 +188,5 @@ body {
 .event-color {
     width: 12px;
     border-radius: 6px;
+
 }
