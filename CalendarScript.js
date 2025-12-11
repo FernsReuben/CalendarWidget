@@ -23,19 +23,19 @@ let events = {}; // will be filled from Wix via postMessage
 // Listen for messages from Wix
 window.addEventListener("message", (event) => {
     if (event.data.type === "loadEvents") {
-        // Convert received events into keyed object for fast lookup
+        // Convert CMS events to keyed object
         events = {};
         event.data.data.forEach(ev => {
             if (!events[ev.date]) events[ev.date] = [];
             events[ev.date].push({
                 title: ev.title,
-                start: ev.startTime || "All Day",
-                end: ev.endTime || "",
+                start: ev.start || "All Day",
+                end: ev.end || "",
                 color: ev.color || "#007aff",
                 description: ev.description || ""
             });
         });
-        render(); // re-render calendar after loading events
+        render(); // update calendar
     }
 });
 
