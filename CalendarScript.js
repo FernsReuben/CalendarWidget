@@ -1,162 +1,83 @@
-// ---------- SAMPLE EVENTS ----------
-const sampleEvents = {
-    "2025-03-03": [
-        { title: "Design Review", start: "09:30", end: "10:30", color: "#FF6B6B" }
-    ],
-    "2025-03-06": [
-        { title: "Team Sync", start: "11:00", end: "11:30", color: "#007aff" },
-        { title: "Call with Alex", start: "15:00", end: "15:45", color: "#7b61ff" }
-    ]
-};
+// CalendarScript.js
+import { getCalendarEvents } from 'backend/events.web.js';
 
-// ---------- HELPERS ----------
-function pad(n) { return n < 10 ? "0" + n : n; }
-function key(y, m, d) { return `${y}-${pad(m)}-${pad(d)}`; }
-function monthName(m) { return new Date(2020, m, 1).toLocaleString("default", { month: "long" }); }
+let currentDate = new Date();
+let events = {};
 
-// ---------- STATE ----------
-const today = new Date();
-const state = {
-    viewDate: new Date(today.getFullYear(), today.getMonth(), 1),
-    selectedDate: null
-};
+document.addEventListener("DOMContentLoaded", async () => {
+    events = await getCalendarEvents();
+    renderCalendar();
+});
 
-// DOM
-const grid = document.getElementById("calendarGrid");
-const monthTitle = document.getElementById("monthTitle");
+const monthLabel = document.getElementById("monthLabel");
+const calendarGrid = document.getElementById("calendarGrid");
+const prevBtn = document.getElementById("prevMonth");
+const nextBtn = document.getElementById("nextMonth");
 
-// ---------- RENDER MONTH ----------
-function renderMonth() {
-    grid.innerHTML = "";
+function renderCalendar() {
+    calendarGrid.innerHTML = "";
 
-    const y = state.viewDate.getFullYear();
-    const m = state.viewDate.getMonth();
-    monthTitle.textContent = `${monthName(m)} ${y}`;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
 
-    const firstDay = new Date(y, m, 1).getDay();
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+    monthLabel.textContent = currentDate.toLocaleString("default", {
+        month: "long",
+        year: "numeric"
+    });
 
-    let dayNum = 1 - firstDay;
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
 
-    for (let i = 0; i < totalCells; i++, dayNum++) {
-        const d = new Date(y, m, dayNum);
-        const dy = d.getFullYear();
-        const dm = d.getMonth();
-        const dd = d.getDate();
-        const k = key(dy, dm + 1, dd);
+    for (let i = 0; i < startDay; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("calendar-day", "empty");
+        calendarGrid.appendChild(cell);
+    }
 
-        const events = sampleEvents[k] || [];
-        const isCurrent = (dm === m);
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-        const el = document.createElement("div");
-        el.className = "day" + (isCurrent ? "" : " inactive");
-        el.dataset.date = k;
+        const cell = document.createElement("div");
+        cell.classList.add("calendar-day");
 
-        if (k === key(today.getFullYear(), today.getMonth() + 1, today.getDate())) {
-            el.classList.add("today");
-        }
-
-        if (state.selectedDate === k) el.classList.add("selected");
+        if (isToday(year, month, day)) cell.classList.add("today");
 
         const num = document.createElement("div");
-        num.className = "date-num";
-        num.textContent = dd;
-        el.appendChild(num);
+        num.classList.add("day-number");
+        num.textContent = day;
+        cell.appendChild(num);
 
-        if (events.length) {
+        if (events[dateKey]) {
             const dots = document.createElement("div");
-            dots.className = "events-dots";
+            dots.classList.add("event-container");
 
-            events.slice(0, 3).forEach(ev => {
+            events[dateKey].forEach(ev => {
                 const dot = document.createElement("div");
-                dot.className = "dot";
-                dot.style.background = ev.color;
+                dot.classList.add("event-dot");
+                dot.style.backgroundColor = ev.color;
+                dot.title = `${ev.title} — ${ev.start}–${ev.end}`;
                 dots.appendChild(dot);
             });
 
-            el.appendChild(dots);
+            cell.appendChild(dots);
         }
 
-        el.addEventListener("click", () => openModal(k, d, events));
-        grid.appendChild(el);
+        calendarGrid.appendChild(cell);
     }
 }
 
-// ---------- MODAL ----------
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modalTitle");
-const modalSubtitle = document.getElementById("modalSubtitle");
-const modalList = document.getElementById("modalList");
-const closeBtn = document.getElementById("closeModal");
+prevBtn.addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+});
 
-function openModal(dateKey, dateObj, events) {
-    state.selectedDate = dateKey;
+nextBtn.addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+});
 
-    modal.style.display = "flex";
-
-    modalTitle.textContent = dateObj.toLocaleDateString("default", {
-        weekday: "long", month: "long", day: "numeric", year: "numeric"
-    });
-    modalSubtitle.textContent = events.length
-        ? `${events.length} event(s)`
-        : "No events";
-
-    modalList.innerHTML = "";
-
-    if (!events.length) {
-        const empty = document.createElement("div");
-        empty.textContent = "No events for this day.";
-        empty.style.color = "var(--muted)";
-        empty.style.padding = "12px";
-        modalList.appendChild(empty);
-    } else {
-        events.forEach(ev => {
-            const item = document.createElement("div");
-            item.className = "event-item";
-
-            const color = document.createElement("div");
-            color.className = "event-color";
-            color.style.background = ev.color;
-
-            const body = document.createElement("div");
-            const title = document.createElement("div");
-            title.style.fontWeight = "700";
-            title.textContent = ev.title;
-
-            const time = document.createElement("div");
-            time.className = "event-time";
-            time.textContent = ev.start ? `${ev.start} – ${ev.end}` : "All day";
-
-            body.appendChild(title);
-            body.appendChild(time);
-
-            item.appendChild(color);
-            item.appendChild(body);
-
-            modalList.appendChild(item);
-        });
-    }
+function isToday(y, m, d) {
+    const t = new Date();
+    return d === t.getDate() && m === t.getMonth() && y === t.getFullYear();
 }
-
-closeBtn.onclick = () => modal.style.display = "none";
-modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
-
-// ---------- NAV ----------
-document.getElementById("prevBtn").onclick = () => {
-    state.viewDate = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth() - 1, 1);
-    renderMonth();
-};
-
-document.getElementById("nextBtn").onclick = () => {
-    state.viewDate = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth() + 1, 1);
-    renderMonth();
-};
-
-document.getElementById("todayBtn").onclick = () => {
-    state.viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    renderMonth();
-};
-
-// ---------- INIT ----------
-renderMonth();
