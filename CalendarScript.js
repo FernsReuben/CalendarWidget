@@ -1,173 +1,162 @@
-// Helper
+// ---------- SAMPLE EVENTS ----------
+const sampleEvents = {
+    "2025-03-03": [
+        { title: "Design Review", start: "09:30", end: "10:30", color: "#FF6B6B" }
+    ],
+    "2025-03-06": [
+        { title: "Team Sync", start: "11:00", end: "11:30", color: "#007aff" },
+        { title: "Call with Alex", start: "15:00", end: "15:45", color: "#7b61ff" }
+    ]
+};
+
+// ---------- HELPERS ----------
 function pad(n) { return n < 10 ? "0" + n : n; }
-function keyOf(date) {
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
+function key(y, m, d) { return `${y}-${pad(m)}-${pad(d)}`; }
+function monthName(m) { return new Date(2020, m, 1).toLocaleString("default", { month: "long" }); }
 
-// State
+// ---------- STATE ----------
 const today = new Date();
-let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
-let selected = null;
+const state = {
+    viewDate: new Date(today.getFullYear(), today.getMonth(), 1),
+    selectedDate: null
+};
 
-// Elements
+// DOM
 const grid = document.getElementById("calendarGrid");
-const titleEl = document.getElementById("monthTitle");
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modalTitle");
-const modalSubtitle = document.getElementById("modalSubtitle");
-const modalList = document.getElementById("modalList");
+const monthTitle = document.getElementById("monthTitle");
 
-// CMS Events container
-let events = {}; // will be filled from Wix via postMessage
-
-// Listen for messages from Wix
-window.addEventListener("message", (event) => {
-    if (event.data.type === "loadEvents") {
-        events = {};
-        event.data.data.forEach(ev => {
-            if (!ev.date) return; // skip invalid dates
-
-            // Convert date to YYYY-MM-DD string to match calendar keys
-            let dateStr;
-            if (ev.date instanceof Date) {
-                dateStr = keyOf(ev.date);
-            } else {
-                // parse string from Wix CMS (ISO)
-                const dt = new Date(ev.date);
-                dateStr = keyOf(dt);
-            }
-
-            if (!events[dateStr]) events[dateStr] = [];
-            events[dateStr].push({
-                title: ev.title || ev.eventName,
-                start: ev.start || ev.eventTime || "All Day",
-                end: ev.end || "",
-                color: ev.color || "#007aff",
-                description: ev.description || ""
-            });
-        });
-        render(); // update calendar
-    }
-});
-
-// Render Calendar
-function render() {
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
-
-    titleEl.textContent = `${viewDate.toLocaleString("default", { month: "long" })} ${year}`;
+// ---------- RENDER MONTH ----------
+function renderMonth() {
     grid.innerHTML = "";
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const y = state.viewDate.getFullYear();
+    const m = state.viewDate.getMonth();
+    monthTitle.textContent = `${monthName(m)} ${y}`;
+
+    const firstDay = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
     const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
     let dayNum = 1 - firstDay;
 
-    for (let i = 0; i < totalCells; i++) {
-        const d = new Date(year, month, dayNum);
-        const cellKey = keyOf(d);
+    for (let i = 0; i < totalCells; i++, dayNum++) {
+        const d = new Date(y, m, dayNum);
+        const dy = d.getFullYear();
+        const dm = d.getMonth();
+        const dd = d.getDate();
+        const k = key(dy, dm + 1, dd);
 
-        const div = document.createElement("div");
-        div.className = "day";
-        div.dataset.date = cellKey;
+        const events = sampleEvents[k] || [];
+        const isCurrent = (dm === m);
 
-        if (d.getMonth() !== month) div.classList.add("inactive");
-        if (cellKey === keyOf(today)) div.classList.add("today");
-        if (cellKey === selected) div.classList.add("selected");
+        const el = document.createElement("div");
+        el.className = "day" + (isCurrent ? "" : " inactive");
+        el.dataset.date = k;
 
-        // Number
+        if (k === key(today.getFullYear(), today.getMonth() + 1, today.getDate())) {
+            el.classList.add("today");
+        }
+
+        if (state.selectedDate === k) el.classList.add("selected");
+
         const num = document.createElement("div");
         num.className = "date-num";
-        num.textContent = d.getDate();
-        div.appendChild(num);
+        num.textContent = dd;
+        el.appendChild(num);
 
-        // Event dots
-        if (events[cellKey]) {
+        if (events.length) {
             const dots = document.createElement("div");
             dots.className = "events-dots";
 
-            events[cellKey].slice(0, 3).forEach(ev => {
+            events.slice(0, 3).forEach(ev => {
                 const dot = document.createElement("div");
                 dot.className = "dot";
                 dot.style.background = ev.color;
                 dots.appendChild(dot);
             });
 
-            div.appendChild(dots);
+            el.appendChild(dots);
         }
 
-        // Click
-        div.addEventListener("click", () => {
-            selected = cellKey;
-            openModal(d, events[cellKey] || []);
-            render();
-        });
-
-        grid.appendChild(div);
-        dayNum++;
+        el.addEventListener("click", () => openModal(k, d, events));
+        grid.appendChild(el);
     }
 }
 
-// Modal
-function openModal(date, eventList) {
+// ---------- MODAL ----------
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+const modalSubtitle = document.getElementById("modalSubtitle");
+const modalList = document.getElementById("modalList");
+const closeBtn = document.getElementById("closeModal");
+
+function openModal(dateKey, dateObj, events) {
+    state.selectedDate = dateKey;
+
     modal.style.display = "flex";
 
-    modalTitle.textContent = date.toLocaleDateString("default", {
+    modalTitle.textContent = dateObj.toLocaleDateString("default", {
         weekday: "long", month: "long", day: "numeric", year: "numeric"
     });
-
-    modalSubtitle.textContent = eventList.length
-        ? `${eventList.length} event(s)`
+    modalSubtitle.textContent = events.length
+        ? `${events.length} event(s)`
         : "No events";
 
     modalList.innerHTML = "";
 
-    if (eventList.length === 0) {
-        modalList.innerHTML = `<div style="color:gray; padding:10px;">No events.</div>`;
+    if (!events.length) {
+        const empty = document.createElement("div");
+        empty.textContent = "No events for this day.";
+        empty.style.color = "var(--muted)";
+        empty.style.padding = "12px";
+        modalList.appendChild(empty);
     } else {
-        eventList.forEach(ev => {
+        events.forEach(ev => {
             const item = document.createElement("div");
             item.className = "event-item";
 
-            item.innerHTML = `
-                <div class="event-color" style="background:${ev.color}"></div>
-                <div>
-                  <div><strong>${ev.title}</strong></div>
-                  <div style="color:gray; font-size:13px;">${ev.start} ${ev.end ? "— " + ev.end : ""}</div>
-                </div>
-            `;
+            const color = document.createElement("div");
+            color.className = "event-color";
+            color.style.background = ev.color;
+
+            const body = document.createElement("div");
+            const title = document.createElement("div");
+            title.style.fontWeight = "700";
+            title.textContent = ev.title;
+
+            const time = document.createElement("div");
+            time.className = "event-time";
+            time.textContent = ev.start ? `${ev.start} – ${ev.end}` : "All day";
+
+            body.appendChild(title);
+            body.appendChild(time);
+
+            item.appendChild(color);
+            item.appendChild(body);
 
             modalList.appendChild(item);
         });
     }
 }
 
-// Close modal
-document.getElementById("closeModal").onclick = () => {
-    modal.style.display = "none";
-};
+closeBtn.onclick = () => modal.style.display = "none";
+modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
 
-// Background click closes modal
-modal.onclick = (e) => {
-    if (e.target === modal) modal.style.display = "none";
-};
-
-// Navigation
+// ---------- NAV ----------
 document.getElementById("prevBtn").onclick = () => {
-    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
-    render();
+    state.viewDate = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth() - 1, 1);
+    renderMonth();
 };
 
 document.getElementById("nextBtn").onclick = () => {
-    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
-    render();
+    state.viewDate = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth() + 1, 1);
+    renderMonth();
 };
 
 document.getElementById("todayBtn").onclick = () => {
-    viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    render();
+    state.viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    renderMonth();
 };
 
-// Init
-render();
+// ---------- INIT ----------
+renderMonth();
