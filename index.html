@@ -4,26 +4,27 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>iPhone Style Calendar</title>
+    <title>iPhone-Style Calendar</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="CalendarStyle.css" />
+    <link rel="stylesheet" href="CalendarStyle.css">
 </head>
 
 <body>
+
     <div class="wrap">
         <div class="calendar-card" role="application" aria-label="Calendar">
             <div class="cal-header">
                 <div class="month-controls">
                     <button class="control-btn icon" id="prevBtn" aria-label="Previous month">&larr;</button>
                     <div>
-                        <div class="month-title" id="monthTitle">Month</div>
+                        <div class="month-title" id="monthTitle"></div>
                         <div style="font-size:12px;color:var(--muted)">Month view</div>
                     </div>
                 </div>
 
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <div class="legend">
+                    <div class="legend" aria-hidden="true">
                         <div class="legend-item">
                             <div class="swatch" style="background:var(--accent)"></div>Events
                         </div>
@@ -46,20 +47,19 @@
                 <div>Sat</div>
             </div>
 
-            <div id="calendarGrid" class="month-grid">
-                <!-- days injected by JS -->
-            </div>
+            <div id="calendarGrid" class="month-grid" role="grid" aria-labelledby="monthTitle"></div>
         </div>
     </div>
 
-    <!-- Modal -->
-    <div id="modal" class="modal-backdrop" aria-hidden="true">
+    <!-- Event Modal -->
+    <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
         <div class="modal">
             <div class="modal-header">
                 <div>
                     <div class="modal-title" id="modalTitle"></div>
-                    <div class="modal-subtitle" id="modalSubtitle"></div>
+                    <div style="color:var(--muted); font-size:13px" id="modalSubtitle"></div>
                 </div>
+
                 <div>
                     <button class="control-btn" id="addEventBtn">＋</button>
                     <button class="close-btn" id="closeModal">✕</button>
