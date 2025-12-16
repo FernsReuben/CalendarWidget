@@ -1,13 +1,24 @@
-// ---------- SAMPLE EVENTS ----------
-const sampleEvents = {
-    "2025-03-14": [
-        { title: "Design Review", start: "09:30", end: "10:30", color: "#FF6B6B" }
-    ],
-    "2025-03-06": [
-        { title: "Team Sync", start: "11:00", end: "11:30", color: "#007aff" },
-        { title: "Call with Alex", start: "15:00", end: "15:45", color: "#7b61ff" }
-    ]
-};
+// ---------- CONFIG ----------
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygujd5GDJuiqNRQ5vK09XBvaiS46G6WMw9V5gSWCW6NlLWSpl36sdPkTrBSN_wIFTGfg/exec";
+
+// ---------- FETCH EVENTS SECURELY ----------
+async function fetchEventsSecure() {
+    try {
+        // 1. Request a short-lived token
+        const tokenRes = await fetch(`${SCRIPT_URL}?action=token`);
+        if (!tokenRes.ok) throw new Error("Failed to get token");
+        const { token } = await tokenRes.json();
+
+        // 2. Request events using token
+        const eventsRes = await fetch(`${SCRIPT_URL}?token=${encodeURIComponent(token)}`);
+        if (!eventsRes.ok) throw new Error("Unauthorized or fetch failed");
+
+        return await eventsRes.json();
+    } catch (err) {
+        console.error("Error fetching events:", err);
+        return {}; // fallback to empty
+    }
+}
 
 // ---------- HELPERS ----------
 function pad(n) { return n < 10 ? "0" + n : n; }
@@ -18,7 +29,8 @@ function monthName(m) { return new Date(2020, m, 1).toLocaleString("default", { 
 const today = new Date();
 const state = {
     viewDate: new Date(today.getFullYear(), today.getMonth(), 1),
-    selectedDate: null
+    selectedDate: null,
+    events: {} // will hold events fetched from server
 };
 
 // DOM
@@ -26,7 +38,12 @@ const grid = document.getElementById("calendarGrid");
 const monthTitle = document.getElementById("monthTitle");
 
 // ---------- RENDER MONTH ----------
-function renderMonth() {
+async function renderMonth() {
+    // Fetch events if not already fetched
+    if (!state.events || Object.keys(state.events).length === 0) {
+        state.events = await fetchEventsSecure();
+    }
+
     grid.innerHTML = "";
 
     const y = state.viewDate.getFullYear();
@@ -46,7 +63,7 @@ function renderMonth() {
         const dd = d.getDate();
         const k = key(dy, dm + 1, dd);
 
-        const events = sampleEvents[k] || [];
+        const events = state.events[k] || [];
         const isCurrent = (dm === m);
 
         const el = document.createElement("div");
