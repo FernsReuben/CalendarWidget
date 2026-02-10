@@ -116,8 +116,9 @@ grid.addEventListener("click", e => {
     const cell = e.target.closest(".day");
     if (!cell || cell.classList.contains("inactive")) return;
 
-    const dateKey = cell.dataset.date;
-    const dateObj = new Date(dateKey);
+    const dateKey = cell.dataset.date; // "YYYY-MM-DD"
+    const [y, m, d] = dateKey.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d); // local date, no timezone shift
     const events = state.events?.[dateKey] || [];
 
     openModal(dateKey, dateObj, events);
